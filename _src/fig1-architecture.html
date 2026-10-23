@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<title>fig1-architecture</title></head>
+<body>
+<div class="fig">
+  <div class="kicker">frp 远程访问 · 全链路</div>
+  <h1>一次 <code>https://app1.example.com</code> 请求走过了什么</h1>
+  <p class="sub">只有云服务器需要公网 IP。内网机与它上面的 Docker 全程躲在 NAT 后面，不做任何端口映射。</p>
+
+  <div class="stage">
+    <!-- 外部访问者 -->
+    <div class="col narrow">
+      <div class="card amber">
+        <div class="tag">外部访问者</div>
+        <div class="big">浏览器</div>
+        <div class="kv">任意能上公网的设备</div>
+      </div>
+    </div>
+
+    <!-- DNS -->
+    <div class="link">
+      <div class="step">① DNS</div>
+      <div class="line"></div>
+      <div class="desc">A 记录<br>→ 服务器 IP</div>
+    </div>
+
+    <!-- 云服务器 -->
+    <div class="col wide">
+      <div class="box blue">
+        <div class="boxtitle">云服务器 <span>有公网 IP · 唯一入口</span></div>
+        <div class="card">
+          <div class="tag">② TLS 终止 + 按域名分流</div>
+          <div class="big">Caddy</div>
+          <div class="kv">监听 <code>443/tcp</code>，自动签发与续期证书</div>
+          <div class="kv">按 <code>Host</code> 反代到 <code>127.0.0.1:17001</code></div>
+        </div>
+        <div class="vlink">↓ reverse_proxy</div>
+        <div class="card">
+          <div class="tag">③ 隧道入口</div>
+          <div class="big">frps</div>
+          <div class="kv"><code>7000</code> 接受 frpc 拨入 · <code>17xxx</code> 是隧道出口</div>
+          <div class="kv">只做 TCP 字节搬运，不懂 HTTP 与域名</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 隧道 -->
+    <div class="link">
+      <div class="step">④ 隧道</div>
+      <div class="line dashed"></div>
+      <div class="desc">frpc 主动拨出<br>work 连接</div>
+    </div>
+
+    <!-- 内网机 -->
+    <div class="col wide">
+      <div class="box violet">
+        <div class="boxtitle">内网机 <span>NAT 后 · 无公网 IP</span></div>
+        <div class="card">
+          <div class="tag">⑤ 接回内网</div>
+          <div class="big">frpc</div>
+          <div class="kv"><code>network_mode: host</code> · 接 <code>127.0.0.1:8080</code></div>
+          <div class="kv">从不接受入站连接，只向外拨</div>
+        </div>
+        <div class="vlink">↓ localPort</div>
+        <div class="card">
+          <div class="tag">⑥ 业务</div>
+          <div class="big">Docker · app1</div>
+          <div class="kv">容器内监听 <code>:80</code>，宿主发布 <code>:8080</code></div>
+          <div class="kv">到这一层，只是「来自本机的普通 HTTP」</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="pill green"><b>frpc 从不接受入站连接</b> —— 所有连接都是它主动拨出去的</span>
+    <span class="pill">所以换 IP、换 Wi-Fi、用手机热点，链路都能自愈</span>
+  </div>
+</div>
+</body></html>

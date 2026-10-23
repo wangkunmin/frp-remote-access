@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<title>fig2-directory</title>
+<style>
+  .trees{display:flex;gap:26px;margin-top:38px}
+  .panel{
+    flex:1;border:1px solid var(--border2);border-radius:16px;
+    background:linear-gradient(180deg,rgba(22,36,58,.9),rgba(17,28,46,.95));
+    overflow:hidden;
+  }
+  .panel.blue{box-shadow:inset 0 0 0 1px rgba(59,130,246,.12)}
+  .panel.violet{box-shadow:inset 0 0 0 1px rgba(167,139,250,.12)}
+  .ph{
+    display:flex;align-items:center;gap:10px;
+    padding:15px 22px;border-bottom:1px solid var(--border);
+    font-size:16.5px;font-weight:700;
+  }
+  .ph code{
+    font-family:var(--mono);font-size:14px;font-weight:600;
+    color:#cbd5e1;background:#0b1220;padding:2px 7px;border-radius:6px;
+  }
+  .panel.blue .ph{color:#93c5fd}
+  .panel.violet .ph{color:#c4b5fd}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.blue{background:var(--blue);box-shadow:0 0 10px rgba(59,130,246,.9)}
+  .dot.violet{background:var(--violet);box-shadow:0 0 10px rgba(167,139,250,.9)}
+  .tree{
+    font-family:var(--mono);font-size:13.5px;line-height:1.92;
+    padding:16px 22px 18px;color:#b8c7da;white-space:pre;margin:0;
+  }
+  .tree .b{color:#e6eef8;font-weight:600}
+  .tree .star{color:#4ade80;font-weight:700}
+  .tree .warn{color:#fbbf24;font-weight:700}
+  .tree .cmt{color:#5d7391}
+  .tree .sep{color:#2e4462}
+  .legend{
+    margin-top:26px;display:flex;gap:26px;align-items:center;
+    font-size:13.5px;color:var(--muted);
+  }
+  .legend b{font-weight:650}
+  .legend .k{color:#4ade80;font-weight:700}
+  .legend .w{color:#fbbf24;font-weight:700}
+</style>
+</head>
+<body>
+<div class="fig">
+  <div class="kicker">frp 远程访问 · 文件放哪</div>
+  <h1>两台机器，各管一半：<code>/opt/frp</code> 与 <code>~/frp</code></h1>
+  <p class="sub">配置与数据分离、可执行文件与配置分离。升级只换镜像，配置原封不动；备份只备配置和数据。</p>
+
+  <div class="trees">
+    <div class="panel blue">
+      <div class="ph"><span class="dot blue"></span>云服务器 <code>/opt/frp</code></div>
+<pre class="tree"><span class="b">/opt/frp/</span>
+├── <span class="b">docker-compose.yaml</span>   <span class="star">★</span> <span class="cmt">frps + caddy 编排</span>
+├── <span class="b">.env</span>                  <span class="star">★</span> <span class="cmt">token / 域名（600）</span>
+├── <span class="b">frps/</span>
+│   └── <span class="b">frps.toml</span>          <span class="star">★</span> <span class="cmt">服务端配置</span>
+├── <span class="b">caddy/</span>
+│   ├── <span class="b">Caddyfile</span>          <span class="star">★</span> <span class="cmt">域名 → 端口路由</span>
+│   ├── <span class="b">data/</span>              <span class="warn">⚠</span> <span class="cmt">证书，必须备份</span>
+│   └── config/             <span class="cmt">可删，自动重建</span>
+├── <span class="b">backups/</span>               <span class="cmt">改配置前的历史</span>
+└── logs/                   <span class="cmt">可删，建议轮转</span></pre>
+    </div>
+
+    <div class="panel violet">
+      <div class="ph"><span class="dot violet"></span>内网机 <code>~/frp</code> + <code>~/apps</code></div>
+<pre class="tree"><span class="b">~/frp/</span>
+├── <span class="b">docker-compose.yaml</span>   <span class="star">★</span> <span class="cmt">frpc 容器（host 网络）</span>
+├── <span class="b">frpc.toml</span>             <span class="star">★</span> <span class="cmt">隧道定义</span>
+└── <span class="b">.env</span>                  <span class="star">★</span> <span class="cmt">FRPS_TOKEN（600）</span>
+
+<span class="b">~/apps/</span>
+├── <span class="b">docker-compose.yaml</span>   <span class="star">★</span> <span class="cmt">所有应用编排</span>
+├── <span class="b">.env</span>                  <span class="star">★</span> <span class="cmt">应用密钥（600）</span>
+├── <span class="b">app1/data/</span>            <span class="cmt">应用数据卷</span>
+├── <span class="b">app2/data/</span>
+└── <span class="b">web/dist/</span>             <span class="cmt">前端静态产物</span></pre>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="k">★</span> <b>核心配置</b> —— 改了就生效，改前先备份</span>
+    <span><span class="w">⚠</span> <b>必须备份</b> —— 丢了要重新签证书，有速率限制</span>
+    <span>权限：<b>.env 与 frps.toml 一律 <span style="font-family:var(--mono)">chmod 600</span></b></span>
+  </div>
+</div>
+</body></html>

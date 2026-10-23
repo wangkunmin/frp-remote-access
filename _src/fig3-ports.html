@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<title>fig3-ports</title>
+<style>
+  .chain{display:flex;align-items:stretch;margin-top:46px}
+  .node{
+    flex:1;min-width:0;text-align:center;
+    border:1px solid var(--border2);border-radius:14px;
+    padding:17px 10px 15px;background:linear-gradient(180deg,#16243a,#111c2e);
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .node .n-tag{font-size:11px;letter-spacing:.1em;font-weight:700;color:var(--dim);text-transform:uppercase}
+  .node .n-name{font-size:19px;font-weight:700;margin-top:6px;line-height:1.25}
+  .node .n-cfg{
+    margin:10px auto 0;font-family:var(--mono);font-size:11.5px;
+    color:#7dd3fc;background:#082334;border:1px solid #0c4a6e;
+    display:inline-block;padding:3px 8px;border-radius:6px;
+    max-width:100%;overflow-wrap:anywhere;
+  }
+  .node.domain{border-color:#5a3d0b;background:linear-gradient(180deg,#2a1f0a,#1d1608)}
+  .node.domain .n-name{color:#fcd34d;font-size:17.5px}
+  .node.caddy,.node.frps{border-color:#1e40af}
+  .node.frpc,.node.docker{border-color:#3b1d6e}
+
+  .conn{width:76px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 4px}
+  .conn .port{font-family:var(--mono);font-size:13px;font-weight:700;color:#4ade80;white-space:nowrap}
+  .conn .lbl{font-size:10.5px;color:var(--dim);white-space:nowrap}
+  .conn .line{width:100%;height:2px;background:#22c55e;position:relative;border-radius:2px}
+  .conn .line::after{
+    content:"";position:absolute;right:-1px;top:50%;transform:translateY(-50%);
+    border-left:8px solid #22c55e;border-top:5px solid transparent;border-bottom:5px solid transparent;
+  }
+  .conn .line.dashed{background:repeating-linear-gradient(90deg,#22c55e 0 6px,transparent 6px 12px)}
+
+  .seg3{display:flex;gap:16px;margin-top:34px}
+  .seg{flex:1;border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:rgba(17,28,46,.55)}
+  .seg-h{font-size:14.5px;font-weight:700;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .seg-h code{font-family:var(--mono);font-size:12.5px;font-weight:600;color:#7dd3fc}
+  .seg-b{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .seg.amber{border-color:#5a3d0b;background:#1d1608}
+  .seg.amber b{color:#fcd34d}
+  .seg.green{border-color:#14532d;background:#0c2418}
+  .seg.green b{color:#4ade80}
+  .seg.violet{border-color:#3b1d6e;background:#1a1030}
+  .seg.violet b{color:#c4b5fd}
+</style>
+</head>
+<body>
+<div class="fig">
+  <div class="kicker">frp 远程访问 · 一个域名对应三个端口</div>
+  <h1>三个端口，三处配置，少改一处就是 502</h1>
+  <p class="sub">从公网到容器，请求经过三段：<b>公网入口 443</b> → <b>隧道端口 17001</b> → <b>本机端口 8080</b>。每一段都由不同的文件决定。</p>
+
+  <div class="chain">
+    <div class="node domain">
+      <div class="n-tag">DNS</div>
+      <div class="n-name">app1.example.com</div>
+      <div class="n-cfg">A 记录 → 1.2.3.4</div>
+    </div>
+
+    <div class="conn">
+      <div class="port">:443</div>
+      <div class="line"></div>
+      <div class="lbl">HTTPS</div>
+    </div>
+
+    <div class="node caddy">
+      <div class="n-tag">云服务器</div>
+      <div class="n-name">Caddy</div>
+      <div class="n-cfg">Caddyfile</div>
+    </div>
+
+    <div class="conn">
+      <div class="port">17001</div>
+      <div class="line"></div>
+      <div class="lbl">127.0.0.1</div>
+    </div>
+
+    <div class="node frps">
+      <div class="n-tag">云服务器</div>
+      <div class="n-name">frps</div>
+      <div class="n-cfg">allowPorts</div>
+    </div>
+
+    <div class="conn">
+      <div class="port">隧道</div>
+      <div class="line dashed"></div>
+      <div class="lbl">frpc 主动拨出</div>
+    </div>
+
+    <div class="node frpc">
+      <div class="n-tag">内网机</div>
+      <div class="n-name">frpc</div>
+      <div class="n-cfg">remotePort / localPort</div>
+    </div>
+
+    <div class="conn">
+      <div class="port">8080</div>
+      <div class="line"></div>
+      <div class="lbl">127.0.0.1</div>
+    </div>
+
+    <div class="node docker">
+      <div class="n-tag">内网机</div>
+      <div class="n-name">容器 app1</div>
+      <div class="n-cfg">ports: 8080:80</div>
+    </div>
+  </div>
+
+  <div class="seg3">
+    <div class="seg amber">
+      <div class="seg-h"><b>① 公网入口</b> <code>443/tcp</code></div>
+      <div class="seg-b">安全组放行 · Caddy 自动签发与续期证书</div>
+    </div>
+    <div class="seg green">
+      <div class="seg-h"><b>② 隧道端口</b> <code>remotePort 17001</code></div>
+      <div class="seg-b">只发布到宿主回环 · frps 与 Caddy 同机，公网摸不到</div>
+    </div>
+    <div class="seg violet">
+      <div class="seg-h"><b>③ 本机端口</b> <code>localPort 8080</code></div>
+      <div class="seg-b">compose ports 把容器 :80 发布到宿主 · 与 localPort 逐字一致</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="pill green"><b>改端口要同时改两处</b> —— frpc.toml 的 remotePort ↔ Caddyfile 的 reverse_proxy</span>
+    <span class="pill">少改一处：<b>Caddy 侧漏改</b> → 502；<b>frpc 侧漏改</b> → 隧道指向空端口</span>
+  </div>
+</div>
+</body></html>

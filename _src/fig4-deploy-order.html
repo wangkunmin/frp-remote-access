@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<title>fig4-deploy-order</title>
+<style>
+  /* ── 本图新增，不改 style.css ── */
+  h1 .no{color:var(--amber)}
+  h1 .no small{
+    font-size:15px;font-weight:600;color:#fcd34d;vertical-align:middle;
+    margin-left:6px;letter-spacing:.02em;
+  }
+
+  .main{
+    display:grid;grid-template-columns:1fr 424px;gap:44px;
+    margin-top:44px;align-items:start;
+  }
+
+  /* ── 左侧时间线 ── */
+  .tl{position:relative}
+  .tl::before{
+    content:"";position:absolute;left:30px;top:32px;bottom:32px;width:2px;
+    background:repeating-linear-gradient(180deg,var(--border2) 0 7px,transparent 7px 14px);
+  }
+  .st{
+    position:relative;
+    display:grid;grid-template-columns:62px 1fr;column-gap:18px;
+    align-items:start;
+  }
+  .idx{
+    position:relative;z-index:2;
+    width:62px;height:62px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:21px;font-weight:700;
+    background:var(--panel);border:2px solid var(--border2);color:var(--muted);
+  }
+
+  .st.amber .idx{border-color:#7c4a09;background:#241a08;color:#fcd34d}
+  .st.blue  .idx{border-color:#1e3a8a;background:#12203a;color:#93c5fd}
+  .st.violet .idx{border-color:#4c1d95;background:#1e1633;color:#c4b5fd}
+  .st.green .idx{border-color:#14532d;background:#0c2418;color:#4ade80}
+
+  .stepcard{
+    padding:15px 20px 16px;
+    background:linear-gradient(180deg,rgba(22,36,58,.95),rgba(17,28,46,.92));
+    border-left:3px solid var(--border2);
+  }
+  .st.amber .stepcard{border-left-color:#b45309}
+  .st.blue .stepcard{border-left-color:var(--blue)}
+  .st.violet .stepcard{border-left-color:var(--violet)}
+  .st.green .stepcard{border-left-color:var(--green)}
+
+  .shead{display:flex;align-items:center;gap:10px}
+  .stitle{font-size:19.5px;font-weight:700;letter-spacing:-.01em}
+  .mach{
+    font-size:11.5px;font-weight:600;letter-spacing:.02em;
+    padding:3px 9px;border-radius:999px;border:1px solid var(--border2);
+    color:var(--muted);white-space:nowrap;
+  }
+  .mach.amber{color:#fcd34d;border-color:#7c4a09;background:#241a08}
+  .mach.blue{color:#93c5fd;border-color:#1e3a8a;background:#12203a}
+  .mach.violet{color:#c4b5fd;border-color:#4c1d95;background:#1e1633}
+  .mach.green{color:#86efac;border-color:#14532d;background:#0c2418}
+  .mach:not(.amber):not(.blue):not(.violet):not(.green){}
+  .path{font-family:var(--mono);font-size:12px;color:var(--dim);margin-left:auto;white-space:nowrap}
+
+  .sbody{
+    display:grid;grid-template-columns:1fr 372px;gap:0;
+    margin-top:11px;padding-top:11px;border-top:1px dashed var(--border);
+  }
+  .act{padding-right:18px;border-right:1px dashed var(--border);min-width:0}
+  .chk{padding-left:18px;min-width:0}
+
+  .line{display:flex;align-items:center;gap:9px;min-width:0}
+  .lb{
+    flex:none;font-size:10.5px;font-weight:700;letter-spacing:.1em;
+    color:var(--dim);width:30px;white-space:nowrap;
+  }
+  .cmd{
+    display:inline-block;font-family:var(--mono);font-size:13.5px;
+    color:#dbe7f5;background:#0b1220;border:1px solid var(--border);
+    padding:4px 9px;border-radius:7px;white-space:nowrap;line-height:1.3;
+    overflow:hidden;text-overflow:ellipsis;max-width:100%;
+  }
+  .do{font-size:13px;color:var(--muted);line-height:1.4}
+  .expect{
+    margin-top:6px;padding-left:39px;
+    font-family:var(--mono);font-size:12px;color:#4ade80;line-height:1.5;
+  }
+  .expect .wild{color:var(--dim);font-style:normal}
+  .chk .cmd{max-width:100%}
+
+  /* 步骤之间的卡点 */
+  .gate{
+    height:38px;display:flex;align-items:center;gap:9px;
+    padding-left:80px;font-family:var(--mono);font-size:11.5px;
+    color:var(--muted);position:relative;
+  }
+  .gate::before{
+    content:"";position:absolute;left:75px;top:50%;width:9px;height:1px;
+    background:var(--border2);
+  }
+  .gate b{color:#4ade80;font-weight:700;letter-spacing:.02em}
+  .gate i{font-style:normal;color:var(--dim)}
+
+  /* ── 右侧说明栏 ── */
+  .side{display:flex;flex-direction:column;gap:16px}
+  .scard{
+    border:1px solid var(--border);border-radius:16px;
+    padding:19px 20px;background:linear-gradient(180deg,rgba(22,36,58,.72),rgba(17,28,46,.86));
+  }
+  .scard.good{border-color:#14532d;background:linear-gradient(180deg,rgba(12,36,24,.9),rgba(9,26,17,.92))}
+  .scard.bad{border-color:#5a1f1f;background:linear-gradient(180deg,rgba(42,14,14,.75),rgba(26,10,10,.9))}
+  .stab{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  .scard.good .stab{color:#4ade80}
+  .scard.bad .stab{color:#f87171}
+  .stitle2{font-size:18px;font-weight:700;margin-top:5px;letter-spacing:-.01em}
+  .scard.good .stitle2{color:#bbf7d0}
+  .scard.bad .stitle2{color:#fecaca}
+  .sp{font-size:13px;color:var(--muted);line-height:1.55;margin-top:8px}
+
+  .ladder{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+  .ladder .row{
+    display:flex;align-items:center;gap:8px;
+    font-size:12.5px;color:#c7d2e0;
+  }
+  .ladder .n{
+    flex:none;width:20px;height:20px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:11px;color:#4ade80;
+    border:1px solid #14532d;background:#0b1f15;
+  }
+  .ladder .ok{margin-left:auto;color:#4ade80;font-family:var(--mono);font-size:11.5px}
+
+  .suspects{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+  .suspects .row{
+    display:flex;align-items:center;gap:8px;
+    font-size:12.5px;color:#e8c9c9;
+    border:1px solid #3a1a1a;background:rgba(42,16,16,.5);
+    border-radius:7px;padding:5px 9px;
+  }
+  .suspects .row .dot{width:6px;height:6px;border-radius:50%;background:#ef4444;opacity:.75}
+  .suspects .row .q{margin-left:auto;font-family:var(--mono);color:#f87171;font-weight:700}
+  .closing{font-size:12.5px;color:#fca5a5;line-height:1.5;margin-top:11px}
+
+  .scard.rule{border-color:var(--border2);background:linear-gradient(180deg,rgba(17,28,46,.88),rgba(13,22,37,.95))}
+  .scard.rule .stab{color:var(--cyan)}
+  .scard.rule .stitle2{color:#e2e8f0}
+  .rules{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+  .rules .r{display:flex;gap:9px;font-size:12.5px;color:#cbd5e1;line-height:1.45;align-items:flex-start}
+  .rules .r b{
+    flex:none;width:18px;height:18px;border-radius:5px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10.5px;font-weight:700;
+    color:var(--cyan);border:1px solid #164e63;background:#0a2a36;
+  }
+  .sp code{font-family:var(--mono);font-size:11.5px;color:#cbd5e1;background:#0b1220;padding:1px 5px;border-radius:4px}
+
+  .quote{
+    border:1px solid #164e63;border-radius:16px;padding:19px 20px;
+    background:linear-gradient(180deg,rgba(10,42,54,.75),rgba(8,26,36,.9));
+  }
+  .quote .bigq{font-size:21px;font-weight:750;line-height:1.4;color:#a5f3fc;letter-spacing:-.01em}
+  .quote .bigq em{font-style:normal;color:#67e8f9;border-bottom:2px solid #155e75;padding-bottom:1px}
+  .quote .sm{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:9px}
+
+  .foot{margin-top:34px}
+</style>
+</head>
+<body>
+<div class="fig">
+  <div class="kicker">frp 远程访问 · 部署顺序</div>
+  <h1>从零搭这条链路，六个步骤 <span class="no">顺序不能反</span></h1>
+  <p class="sub">每一步只做一件事、只验一件事。上一层的验收命令没跑通，就不要碰下一层 —— 每一层都能独立证明自己是好的，叠起来才有意义。</p>
+
+  <div class="main">
+    <!-- 时间线 -->
+    <div class="tl">
+
+      <!-- ① DNS -->
+      <div class="st amber">
+        <div class="idx">01</div>
+        <div class="card stepcard">
+          <div class="shead">
+            <div class="stitle">DNS 解析</div>
+            <span class="mach amber">域名控制台</span>
+            <span class="path">DNS 面板</span>
+          </div>
+          <div class="sbody">
+            <div class="act">
+              <div class="line"><span class="lb">执行</span><span class="do">配 A 记录 / 泛解析</span></div>
+              <div class="line" style="margin-top:7px"><code class="cmd">*.example.com  A  1.2.3.4</code></div>
+            </div>
+            <div class="chk">
+              <div class="line"><span class="lb">验收</span><code class="cmd">dig +short app1.example.com</code></div>
+              <div class="expect">→ 1.2.3.4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gate"><b>✓</b> 01 解析确认通了<i>↓ 才轮到开端口</i></div>
+
+      <!-- ② 安全组 -->
+      <div class="st amber">
+        <div class="idx">02</div>
+        <div class="card stepcard">
+          <div class="shead">
+            <div class="stitle">安全组放行</div>
+            <span class="mach amber">云控制台</span>
+            <span class="path">安全组 · 入站</span>
+          </div>
+          <div class="sbody">
+            <div class="act">
+              <div class="line"><span class="lb">执行</span><span class="do">只开这四个端口，其余全关</span></div>
+              <div class="line" style="margin-top:7px"><code class="cmd">22 / 80 / 443 / 7000  TCP</code></div>
+            </div>
+            <div class="chk">
+              <div class="line"><span class="lb">验收</span><code class="cmd">nc -vz 1.2.3.4 7000</code></div>
+              <div class="expect">→ succeeded! <span class="wild">（从外网机器执行）</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gate"><b>✓</b> 02 外网能连 7000<i>↓ 才去装 frps</i></div>
+
+      <!-- ③ frps + Caddy -->
+      <div class="st blue">
+        <div class="idx">03</div>
+        <div class="card stepcard">
+          <div class="shead">
+            <div class="stitle">frps + Caddy</div>
+            <span class="mach blue">云服务器</span>
+            <span class="path">/opt/frp</span>
+          </div>
+          <div class="sbody">
+            <div class="act">
+              <div class="line"><span class="lb">执行</span><span class="do">入口侧两个容器一起拉起</span></div>
+              <div class="line" style="margin-top:7px"><code class="cmd">docker compose up -d</code></div>
+            </div>
+            <div class="chk">
+              <div class="line"><span class="lb">验收</span><code class="cmd">curl 127.0.0.1:7500/healthz</code></div>
+              <div class="expect">→ ok <span class="wild">（frps 本机健康）</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gate"><b>✓</b> 03 入口侧自检通过<i>↓ 才轮到 NAT 里的应用</i></div>
+
+      <!-- ④ 应用容器 -->
+      <div class="st violet">
+        <div class="idx">04</div>
+        <div class="card stepcard">
+          <div class="shead">
+            <div class="stitle">应用容器</div>
+            <span class="mach violet">内网机</span>
+            <span class="path">~/apps</span>
+          </div>
+          <div class="sbody">
+            <div class="act">
+              <div class="line"><span class="lb">执行</span><span class="do">先让 app1 在本机自己能打开</span></div>
+              <div class="line" style="margin-top:7px"><code class="cmd">docker compose up -d</code></div>
+            </div>
+            <div class="chk">
+              <div class="line"><span class="lb">验收</span><code class="cmd">curl 127.0.0.1:8080</code></div>
+              <div class="expect">→ app1 页面</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gate"><b>✓</b> 04 应用自己会响应<i>↓ 才轮到 frpc</i></div>
+
+      <!-- ⑤ frpc -->
+      <div class="st violet">
+        <div class="idx">05</div>
+        <div class="card stepcard">
+          <div class="shead">
+            <div class="stitle">frpc 拨出</div>
+            <span class="mach violet">内网机</span>
+            <span class="path">~/frp</span>
+          </div>
+          <div class="sbody">
+            <div class="act">
+              <div class="line"><span class="lb">执行</span><span class="do">最后才让 NAT 后主动拨出去</span></div>
+              <div class="line" style="margin-top:7px"><code class="cmd">docker compose up -d frpc</code></div>
+            </div>
+            <div class="chk">
+              <div class="line"><span class="lb">验收</span><code class="cmd">docker compose logs frpc</code></div>
+              <div class="expect">→ login to server success<br>→ start proxy success</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gate"><b>✓</b> 05 两条日志都出现<i>↓ 才值得测域名</i></div>
+
+      <!-- ⑥ 端到端 -->
+      <div class="st green">
+        <div class="idx">06</div>
+        <div class="card stepcard">
+          <div class="shead">
+            <div class="stitle">端到端验收</div>
+            <span class="mach green">任意机器</span>
+            <span class="path">手机热点 / 外部笔记本</span>
+          </div>
+          <div class="sbody">
+            <div class="act">
+              <div class="line"><span class="lb">执行</span><span class="do">用域名完整走一遍整条链路</span></div>
+              <div class="line" style="margin-top:7px"><code class="cmd">curl -I https://app1.example.com</code></div>
+            </div>
+            <div class="chk">
+              <div class="line"><span class="lb">验收</span><code class="cmd">HTTP/2 200</code></div>
+              <div class="expect">→ 证书有效，链路全通</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右侧 -->
+    <aside class="side">
+      <div class="scard good">
+        <div class="stab">正着做</div>
+        <div class="stitle2">每层都有独立的证据</div>
+        <p class="sp">六步对应六条验收，每条只回答一个问题。任何一步坏了，停在这一步。</p>
+        <div class="ladder">
+          <div class="row"><span class="n">1</span>DNS 返回 IP<span class="ok">✓</span></div>
+          <div class="row"><span class="n">2</span>外网端口可达<span class="ok">✓</span></div>
+          <div class="row"><span class="n">3</span>frps 本机健康<span class="ok">✓</span></div>
+          <div class="row"><span class="n">4</span>app 本机响应<span class="ok">✓</span></div>
+          <div class="row"><span class="n">5</span>frpc 登录成功<span class="ok">✓</span></div>
+          <div class="row"><span class="n">6</span>域名返回 200<span class="ok">✓</span></div>
+        </div>
+      </div>
+
+      <div class="scard bad">
+        <div class="stab">反着做</div>
+        <div class="stitle2">断链时，五个都是嫌疑人</div>
+        <p class="sp">frpc 日志已经 <code>login success</code>，可 https 还是打不开。没验过的层，全是未知：</p>
+        <div class="suspects">
+          <div class="row"><span class="dot"></span>DNS 记录对不对？<span class="q">?</span></div>
+          <div class="row"><span class="dot"></span>安全组开了 7000 吗？<span class="q">?</span></div>
+          <div class="row"><span class="dot"></span>Caddy 反代配了吗？<span class="q">?</span></div>
+          <div class="row"><span class="dot"></span>frps 健康吗？<span class="q">?</span></div>
+          <div class="row"><span class="dot"></span>app1 自己活着吗？<span class="q">?</span></div>
+        </div>
+        <div class="closing">顺序反了的代价不是搭不起来，是坏了说不清在哪一跳。</div>
+      </div>
+
+      <div class="scard rule">
+        <div class="stab">自检</div>
+        <div class="stitle2">开下一步之前，先问三句</div>
+        <div class="rules">
+          <div class="r"><b>1</b>这一步的验收命令是什么？</div>
+          <div class="r"><b>2</b>它现在能单独跑通吗？</div>
+          <div class="r"><b>3</b>跑通了，才允许动下一步。</div>
+        </div>
+      </div>
+
+      <div class="quote">
+        <div class="bigq">先能<em>单独验</em>，才允许往上叠。</div>
+        <div class="sm">验收命令就是故障切分线：跑通一条，少一个嫌疑人。</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="foot">
+    <span class="pill green"><b>6 步 = 6 条验收</b> —— 每一层都先能独立自证</span>
+    <span class="pill">顺序反了不会搭不起来，只会坏得查不出来</span>
+    <span class="pill">断链时从 ① 重跑验收，<b>第一条失败的就是断点</b></span>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<title>fig5-fault-tree</title>
+<style>
+  :root{--cw:232px;--cg:16px}
+
+  /* ── 机器归属带 ── */
+  .owners{
+    display:grid;grid-template-columns:repeat(6,var(--cw));gap:var(--cg);
+    margin-top:36px;
+  }
+  .own{
+    display:flex;align-items:center;gap:9px;height:32px;padding:0 12px;
+    border:1px solid var(--border);border-radius:9px;
+    background:rgba(17,28,46,.55);
+    font-size:12px;color:var(--dim);letter-spacing:.08em;
+  }
+  .own .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--dim)}
+  .own b{color:var(--muted);font-weight:650;font-size:12.5px;letter-spacing:.02em}
+  .own .lbl{font-size:11px;color:var(--dim);letter-spacing:.02em;margin-left:auto}
+  .own.dns .dot{background:var(--amber)}
+  .own.srv{grid-column:2 / 5;border-color:#1f3c60;background:rgba(37,68,110,.22)}
+  .own.srv .dot{background:var(--blue)}
+  .own.srv b{color:#93c5fd}
+  .own.tb{grid-column:5 / 7;border-color:#3b2f63;background:rgba(76,58,120,.18)}
+  .own.tb .dot{background:var(--violet)}
+  .own.tb b{color:#c4b5fd}
+
+  /* ── 六段链路 ── */
+  .railwrap{position:relative;margin-top:18px}
+  .rail{
+    position:absolute;left:116px;right:116px;top:31px;height:2px;border-radius:2px;
+    background:linear-gradient(90deg,
+      rgba(34,197,94,.28),rgba(34,197,94,.62) 20%,
+      rgba(34,197,94,.62) 80%,rgba(34,197,94,.28));
+    box-shadow:0 0 10px -2px rgba(34,197,94,.35);
+  }
+  .grid6{display:grid;grid-template-columns:repeat(6,var(--cw));gap:var(--cg);position:relative}
+  .seg{display:flex;flex-direction:column;align-items:center}
+
+  .node{
+    position:relative;width:64px;height:64px;border-radius:17px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:27px;font-weight:700;color:#86efac;
+    border:1px solid #2a6b4a;
+    background:linear-gradient(180deg,#12301f,#0d2418);
+    box-shadow:0 0 0 4px rgba(11,18,32,.92),0 12px 26px -18px rgba(34,197,94,.75);
+  }
+  .node.judge{
+    border-color:#7c5a15;
+    background:linear-gradient(180deg,#332507,#211806);
+    color:#fcd34d;
+    box-shadow:0 0 0 4px rgba(11,18,32,.92),0 0 26px -4px rgba(245,158,11,.42),
+               0 12px 26px -18px rgba(245,158,11,.6);
+  }
+  .st{
+    position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;
+    display:grid;place-items:center;font-size:11.5px;font-weight:800;
+    color:#052e16;background:var(--green);border:2px solid #0b1220;
+  }
+  .node.judge .st{color:#3b2403;background:var(--amber)}
+
+  .name{
+    margin-top:13px;font-size:17.5px;font-weight:700;letter-spacing:-.01em;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .wt{
+    font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#fcd34d;
+    border:1px solid #6b4a0e;background:#2a1d06;
+    padding:2px 7px;border-radius:999px;
+  }
+
+  /* 现象 / 验证 两行小字 */
+  .sym,.chk{width:100%;font-size:12.5px;line-height:1.62}
+  .sym{margin-top:11px;color:#e0bd83;min-height:44px}
+  .chk{margin-top:9px;color:var(--muted);min-height:24px}
+  .sym i,.chk i{
+    display:inline-block;width:30px;font-style:normal;font-size:10.5px;
+    font-weight:700;letter-spacing:.06em;color:#a97b2a;
+  }
+  .chk i{color:#2f9e63}
+  .sym code{
+    font-family:var(--mono);font-size:11.5px;color:#fcd34d;
+    background:#241a08;border:1px solid #4a3410;
+    padding:1px 5px;border-radius:4px;white-space:nowrap;
+  }
+  .chk code{
+    font-family:var(--mono);font-size:11px;color:#a7f3c4;
+    background:#0a1e13;border:1px solid #175033;
+    padding:2px 6px;border-radius:5px;white-space:nowrap;
+  }
+
+  /* ── 分水岭 ── */
+  .ws{
+    position:relative;margin-top:34px;border:1px solid var(--border2);
+    border-radius:16px;padding:18px 20px 20px;overflow:hidden;
+    background:linear-gradient(180deg,rgba(22,36,58,.78),rgba(17,28,46,.92));
+  }
+  .ws::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:linear-gradient(180deg,var(--amber),rgba(245,158,11,0));
+  }
+  .wshead{display:flex;align-items:center;gap:12px}
+  .wsk{
+    flex:none;font-size:12px;font-weight:800;letter-spacing:.16em;color:#fcd34d;
+    border:1px solid #6b4a0e;background:#2a1d06;padding:4px 11px;border-radius:999px;
+  }
+  .wshead b{font-size:16.5px;font-weight:700}
+  .wshead b em{font-style:normal;color:#fcd34d}
+  .wshead .cmd{
+    margin-left:auto;font-family:var(--mono);font-size:12px;color:#9fe8b8;
+    background:#0a1e13;border:1px solid #175033;
+    padding:5px 10px;border-radius:7px;white-space:nowrap;
+  }
+  .wsbranches{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .branch{
+    display:flex;align-items:flex-start;gap:13px;
+    border:1px solid var(--border);border-radius:12px;padding:12px 16px;
+    background:rgba(11,18,32,.55);
+  }
+  .bmark{
+    flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+    font-size:14px;font-weight:800;margin-top:1px;
+  }
+  .branch.no{border-color:#4a2320;background:linear-gradient(180deg,rgba(70,26,22,.3),rgba(11,18,32,.5))}
+  .branch.no .bmark{color:#fca5a5;background:#2a1311;border:1px solid #5a2a22}
+  .branch.yes{border-color:#4a3a14;background:linear-gradient(180deg,rgba(70,52,14,.24),rgba(11,18,32,.5))}
+  .branch.yes .bmark{color:#fcd34d;background:#2a1d06;border:1px solid #6b4a0e}
+  .bline{font-size:15.5px;font-weight:600;line-height:1.5}
+  .bline b{font-weight:800;color:var(--text)}
+  .bline .arrow{color:var(--dim);margin:0 4px;font-weight:700}
+  .branch.no .arrow{color:#f87171}
+  .branch.yes .arrow{color:#fbbf24}
+  .branch.no .bline em{font-style:normal;color:#fca5a5;font-family:var(--mono);font-size:14px;font-weight:700}
+  .branch.yes .bline em{font-style:normal;color:#fcd34d;font-family:var(--mono);font-size:14px;font-weight:700}
+  .bdesc{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.55}
+
+  /* ── 剥洋葱条 ── */
+  .onion{
+    margin-top:28px;display:flex;align-items:center;gap:14px;
+    border:1px solid #1c4b34;border-radius:13px;padding:12px 16px;
+    background:linear-gradient(90deg,rgba(12,36,24,.65),rgba(11,18,32,.35));
+  }
+  .onion .ok{
+    flex:none;font-size:12.5px;font-weight:800;letter-spacing:.1em;color:#4ade80;
+    border:1px solid #14532d;background:#0c2418;padding:5px 12px;border-radius:999px;
+  }
+  .onion .ontext{font-size:13.5px;color:var(--muted)}
+  .onion .ontext b{color:var(--text);font-weight:650}
+  .chain{margin-left:auto;display:flex;align-items:center;gap:7px;flex:none}
+  .chain .eg{font-size:11px;color:var(--dim);letter-spacing:.1em;margin-right:2px}
+  .ch{
+    font-family:var(--mono);font-size:11.5px;line-height:1;
+    padding:5px 7px;border-radius:6px;border:1px solid #175033;
+    color:#86efac;background:#0a1e13;
+  }
+  .ch.bad{color:#fecaca;background:#2a1311;border-color:#5a2a22}
+  .ch.na{color:var(--dim);background:transparent;border-color:var(--border)}
+</style>
+</head>
+<body>
+<div class="fig">
+  <div class="kicker">frp 远程访问 · 故障定位</div>
+  <h1>出问题先别从头发呆，先确定 <code>断在哪一段</code></h1>
+  <p class="sub">报错只会说「没通」，不会说「哪没通」。六段链路各配一条验证命令 —— 从 ① 往下逐条试，第一次失败的那段就是断点。</p>
+
+  <div class="owners">
+    <div class="own dns"><span class="dot"></span><b>公网 DNS</b></div>
+    <div class="own srv"><span class="dot"></span><b>云服务器</b><span class="lbl">有公网 IP · 唯一入口</span></div>
+    <div class="own tb"><span class="dot"></span><b>内网机</b><span class="lbl">NAT 后 · 无公网 IP</span></div>
+  </div>
+
+  <div class="railwrap">
+    <div class="rail"></div>
+    <div class="grid6">
+
+      <div class="seg">
+        <div class="node">①<span class="st">✓</span></div>
+        <div class="name">DNS</div>
+        <div class="sym"><i>现象</i><code>Could not resolve host</code><br><i></i><code>NXDOMAIN</code></div>
+        <div class="chk"><i>验证</i><code>dig +short app1.example.com</code></div>
+      </div>
+
+      <div class="seg">
+        <div class="node">②<span class="st">✓</span></div>
+        <div class="name">云服务器入口</div>
+        <div class="sym"><i>现象</i><code>curl</code> 卡住超时<br><i></i>立刻 <code>Connection refused</code></div>
+        <div class="chk"><i>验证</i><code>nc -vz 1.2.3.4 443</code></div>
+      </div>
+
+      <div class="seg">
+        <div class="node judge">③<span class="st">?</span></div>
+        <div class="name">Caddy <span class="wt">分水岭</span></div>
+        <div class="sym"><i>现象</i>证书告警<br><i></i><code>502 Bad Gateway</code></div>
+        <div class="chk"><i>验证</i><code>docker compose logs caddy</code></div>
+      </div>
+
+      <div class="seg">
+        <div class="node">④<span class="st">✓</span></div>
+        <div class="name">frps</div>
+        <div class="sym"><i>现象</i><code>proxy offline</code><br><i></i><code>port not allowed</code></div>
+        <div class="chk"><i>验证</i><code>curl 127.0.0.1:17001</code></div>
+      </div>
+
+      <div class="seg">
+        <div class="node">⑤<span class="st">✓</span></div>
+        <div class="name">frpc</div>
+        <div class="sym"><i>现象</i><code>start error</code><br><i></i><code>login fail</code></div>
+        <div class="chk"><i>验证</i><code>docker compose logs frpc</code></div>
+      </div>
+
+      <div class="seg">
+        <div class="node">⑥<span class="st">✓</span></div>
+        <div class="name">Docker · app1</div>
+        <div class="sym"><i>现象</i>隧道通但 <code>502</code><br><i></i>容器错误页</div>
+        <div class="chk"><i>验证</i><code>curl 127.0.0.1:8080</code></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="ws">
+    <div class="wshead">
+      <span class="wsk">分水岭</span>
+      <b>只看 ③ 的一件事：Caddy 日志里<em>有没有</em>这条请求</b>
+      <span class="cmd">docker compose logs caddy | grep app1</span>
+    </div>
+    <div class="wsbranches">
+      <div class="branch no">
+        <div class="bmark">✗</div>
+        <div class="btxt">
+          <div class="bline">日志里<b>没有</b>这条请求<span class="arrow">→</span>断在 <em>① / ②</em></div>
+          <div class="bdesc">请求没到 Caddy 就已经没了：断在入口或更前，先查 DNS 解析，再看 443 通不通。</div>
+        </div>
+      </div>
+      <div class="branch yes">
+        <div class="bmark">✓</div>
+        <div class="btxt">
+          <div class="bline">日志里<b>有</b>这条请求<span class="arrow">→</span>断在 <em>④ / ⑤ / ⑥</em></div>
+          <div class="bdesc">入口与 Caddy 都已放行：断在隧道及以内，往上查 frps 面板、frpc 日志、容器。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="onion">
+    <span class="ok">剥洋葱</span>
+    <span class="ontext">沿链路逐条验证，<b>第一次失败的那段就是断点</b> —— 停在那里查，不要跳着猜。</span>
+    <span class="chain">
+      <span class="eg">例</span>
+      <span class="ch">①✓</span>
+      <span class="ch">②✓</span>
+      <span class="ch">③✓</span>
+      <span class="ch">④✓</span>
+      <span class="ch bad">⑤✗</span>
+      <span class="ch na">⑥—</span>
+    </span>
+  </div>
+</div>
+</body></html>
